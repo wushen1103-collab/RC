@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+.venv/
+venv/
+build/
+dist/
+data/openml/
+results/benchmark/
+results/controls/
+results/synthetic/
+results/audit_sensitivity/
+results/quickcheck/
+*.partial.csv

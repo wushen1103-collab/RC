@@ -1,0 +1,5 @@
+benchmark,audit_decision,comparison,runs,datasets,mean_delta_sscs,median_delta_sscs,mean_delta_violation,median_delta_violation,mean_delta_size,median_delta_size,sscs_win_rate,violation_win_rate,size_smaller_rate
+Holdout20-CPU5,Fail,fail_fallback_minus_safe,159,17,0.0099650040623126,0.0092592592592591,0.0,0.0,1.2578616352201255,1.0,0.7987421383647799,0.0,0.0
+Holdout20-CPU5,Pass,pass_selected_safe_minus_ultrasafe,141,16,-0.0002863184900849,0.0,0.0,0.0,-0.0567375886524822,0.0,0.0,0.0,0.0496453900709219
+TabICL119,Fail,fail_fallback_minus_safe,142,63,0.0097322688248201,0.0092507017183541,-0.0004117395998091,0.0,1.0845070422535212,1.0,0.7605633802816901,0.0140845070422535,0.0
+TabICL119,Pass,pass_selected_safe_minus_ultrasafe,215,86,-0.0002798320589454,0.0,0.0,0.0,-0.041860465116279,0.0,0.0,0.0,0.041860465116279

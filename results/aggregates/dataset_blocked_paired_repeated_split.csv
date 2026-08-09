@@ -1,0 +1,5 @@
+comparator,blocks,delta_sscs_mean,delta_sscs_ci_low,delta_sscs_ci_high,sscs_p_two_sided,delta_size_mean,delta_size_ci_low,delta_size_ci_high,rankcover_smaller_blocks,total_blocks,source
+APS-safe,20,0.0207,0.0102,0.0328,0.00171,-0.233,-0.556,0.100,13,20,figure_data_package/raw/hard20_repeated_split_raw.csv
+Rank-ultra-safe,20,0.0003,-0.0002,0.0009,0.953,0.136,-0.021,0.384,6,20,figure_data_package/raw/hard20_repeated_split_raw.csv
+Static rank-safe Floor3,20,0.0064,0.0043,0.0084,0.000648,0.744,0.455,1.062,0,20,figure_data_package/raw/hard20_repeated_split_raw.csv
+Rank-safe,20,0.0075,0.0054,0.0095,0.000291,0.951,0.636,1.275,0,20,figure_data_package/raw/hard20_repeated_split_raw.csv

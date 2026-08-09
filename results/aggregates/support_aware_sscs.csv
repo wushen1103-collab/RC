@@ -1,0 +1,6 @@
+minimum_size_stratum_support,evaluated_runs,support_aware_sscs,support_aware_violation_runs,source
+1,800,0.9970297129963706,0,figure_data_package/raw/hard20_repeated_split_raw.csv
+5,800,0.9970297129963706,0,figure_data_package/raw/hard20_repeated_split_raw.csv
+10,800,0.9970297129963706,0,figure_data_package/raw/hard20_repeated_split_raw.csv
+20,800,0.9970297129963706,0,figure_data_package/raw/hard20_repeated_split_raw.csv
+50,800,0.9970297129963706,0,figure_data_package/raw/hard20_repeated_split_raw.csv
