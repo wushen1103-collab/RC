@@ -1,7 +1,0 @@
-method,runs,mean_sscs,violation_runs,mean_dmax,mean_dmean,mean_size,source
-lac_global,800,0.891677,547,0.041806,0.015074,1.571660,figure_data_package/raw/hard20_repeated_split_raw.csv
-raps_global,800,0.865013,410,0.021451,0.008318,1.872737,figure_data_package/raw/hard20_repeated_split_raw.csv
-rank_global,800,0.953270,343,0.026133,0.008938,1.997500,figure_data_package/raw/hard20_repeated_split_raw.csv
-rank_global_safe,800,0.989541,1,0.000022,0.000007,3.346250,figure_data_package/raw/hard20_repeated_split_raw.csv
-aps_global_safe,800,0.976329,0,0.000000,0.000000,4.530557,figure_data_package/raw/hard20_repeated_split_raw.csv
-rank_audit_consistency_floor3,800,0.997030,0,0.000000,0.000000,4.297500,figure_data_package/raw/hard20_repeated_split_raw.csv

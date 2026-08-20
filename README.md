@@ -1,22 +1,24 @@
 # RankCover
 
-RankCover is a reliability-prioritized conformal classifier for multiclass tabular prediction. It constructs nested rank-based prediction sets, audits a compact candidate on held-out calibration evidence, and switches at run level to a more conservative operating point when the audit fails. A class-count floor is activated only for sufficiently multiclass tasks.
+RankCover is a confidence-certified operating-point selector for conformal classification. A scoring split constructs a nested dense family of integer-rank prediction sets, a disjoint audit split supplies bin-wise error counts, and one-sided Clopper--Pearson bounds certify candidates in a fixed conservative-to-compact sequence. If the largest informative candidate cannot be certified, RankCover returns the all-label set.
 
-This repository contains the implementation used for the experiments, the fixed benchmark identifiers, executable experiment drivers, and compact aggregate evidence. Large caches and row-level intermediate results are deliberately excluded.
+This repository contains the final method implementation, public benchmark identifiers, experiment drivers, tests, and compact aggregate evidence used in the paper. Dataset caches, prediction caches, logs, and row-level intermediate files are intentionally excluded.
 
 ## Repository map
 
 | Path | Purpose |
 |---|---|
-| `rankcover/core.py` | Conformal scores, prediction sets, risk stratification, and evaluation metrics |
-| `rankcover/data.py` | Built-in and OpenML loading, encoding, filtering, and stratified subsampling |
-| `scripts/run_benchmark.py` | Main benchmark, baselines, operating points, and ablations |
-| `scripts/run_custom_split.py` | Alternative train/calibration/test split experiments |
-| `scripts/run_controls.py` | Generic-floor, size-matched, and paired control comparisons |
-| `scripts/run_synthetic.py` | Controlled multiclass mechanism study |
-| `scripts/run_audit_sensitivity.py` | Prespecified audit-design sensitivity study |
-| `benchmarks/` | Fixed Hard20 and 119-task OpenML identifiers |
-| `results/aggregates/` | Lightweight aggregate tables reported in the manuscript and supplement |
+| `rankcover/core.py` | Conformal scores, set constructors, risk strata, and evaluation metrics |
+| `rankcover/data.py` | Built-in and OpenML data loading and preprocessing |
+| `scripts/run_confidence_rankcover.py` | Final dense confidence-certified RankCover and matched baselines |
+| `scripts/run_synthetic_certificate.py` | Fixed-reference-population certificate validation |
+| `scripts/aggregate_final.py` | Main, decision, blocked-inference, and implementation summaries |
+| `scripts/aggregate_sensitivity.py` | Calibration, audit, binning, risk, and nominal-level summaries |
+| `benchmarks/` | Hard20, TabICL119, and External20 task identifiers |
+| `results/final/` | Lightweight publication-facing aggregate tables |
+| `tests/` | Unit tests for conformal and certificate logic |
+
+The older generic benchmark and control drivers remain available for baseline and historical-ablation reproduction. They are not components of the final RankCover policy.
 
 ## Installation
 
@@ -29,9 +31,7 @@ python -m pip install --upgrade pip
 python -m pip install -e .
 ```
 
-On Windows PowerShell, activate the environment with `.venv\Scripts\Activate.ps1`.
-
-The base installation supports the random-forest and logistic-regression routes. Install optional estimators only when they are needed:
+Install optional tree or foundation-model dependencies only when needed:
 
 ```bash
 python -m pip install -e ".[trees]"
@@ -40,87 +40,83 @@ python -m pip install -e ".[foundation]"
 
 ## Quick check
 
-The following command uses a bundled scikit-learn dataset and requires no network download:
+This command uses a bundled scikit-learn dataset and requires no download:
 
 ```bash
-python scripts/run_benchmark.py \
+python scripts/run_confidence_rankcover.py \
   --datasets wine \
   --models rf \
   --seeds 0 \
-  --max-rows 500 \
+  --workers 1 \
   --n-jobs 2 \
-  --stability-k 2 \
-  --compact-score-alpha 0.025 \
-  --rank-ultrasafe-alpha 0.01 \
-  --rank-floor-k 3 \
-  --rank-floor-min-classes 5 \
+  --bootstrap 50 \
   --outdir results/quickcheck
 ```
 
-## Reproducing the reported protocols
+## Main benchmark commands
 
-Dataset arguments are comma-separated. The committed benchmark files use `openml:<id>` tokens accepted by the loaders.
-
-Linux/macOS:
+Hard20:
 
 ```bash
-HARD20=$(paste -sd, benchmarks/hard20.txt)
-python scripts/run_benchmark.py \
-  --datasets "$HARD20" \
-  --models rf,lgbm,catboost,tabicl \
+python scripts/run_confidence_rankcover.py \
+  --benchmark Hard20 \
+  --dataset-file benchmarks/hard20.txt \
+  --models rf,lgbm,xgb,catboost,logreg \
   --seeds 0,1,2 \
-  --alpha 0.10 \
-  --compact-score-alpha 0.025 \
-  --rank-ultrasafe-alpha 0.01 \
-  --rank-floor-k 3 \
-  --rank-floor-min-classes 5 \
-  --audit-frac 0.35 \
-  --max-rows 1800 \
-  --outdir results/benchmark
+  --workers 8 --n-jobs 2 \
+  --bootstrap 200 \
+  --outdir results/hard20
 ```
 
-PowerShell:
-
-```powershell
-$hard20 = (Get-Content benchmarks/hard20.txt) -join ','
-python scripts/run_benchmark.py `
-  --datasets $hard20 `
-  --models rf,lgbm,catboost,tabicl `
-  --seeds 0,1,2 `
-  --alpha 0.10 `
-  --compact-score-alpha 0.025 `
-  --rank-ultrasafe-alpha 0.01 `
-  --rank-floor-k 3 `
-  --rank-floor-min-classes 5 `
-  --audit-frac 0.35 `
-  --max-rows 1800 `
-  --outdir results/benchmark
-```
-
-The same list can be passed to the control and audit-design drivers:
+External20:
 
 ```bash
-python scripts/run_controls.py --datasets "$HARD20" --outdir results/controls
-python scripts/run_audit_sensitivity.py --datasets "$HARD20" --outdir results/audit_sensitivity
-python scripts/run_synthetic.py --seeds 0,1,2,3,4 --n-samples 6000 --outdir results/synthetic
+python scripts/run_confidence_rankcover.py \
+  --benchmark External20 \
+  --dataset-file benchmarks/external20.txt \
+  --models rf,lgbm,xgb,catboost,logreg \
+  --seeds 0,1,2 \
+  --workers 8 --n-jobs 2 \
+  --bootstrap 200 \
+  --outdir results/external20
 ```
 
-See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the data split, operating points, metrics, experiment-to-table mapping, and environment notes.
-
-## Aggregate evidence
-
-The files under `results/aggregates/` are publication-facing summaries rather than row-level predictions. They cover the main comparisons, paired controls, repeated-split deficits, audit counterfactuals, floor and trigger sensitivity, multiple evaluation targets, calibration-size sensitivity, synthetic mechanism tests, support-threshold checks, and audit-design sensitivity. Each file is small enough to inspect directly and is protected by a committed SHA-256 manifest.
+TabICL119:
 
 ```bash
-python scripts/verify_aggregates.py
+python scripts/run_confidence_rankcover.py \
+  --benchmark TabICL119 \
+  --dataset-file benchmarks/tabicl119.txt \
+  --models tabicl \
+  --seeds 0,1,2 \
+  --tabicl-estimators 4 \
+  --workers 1 --n-jobs 2 \
+  --bootstrap 200 \
+  --outdir results/tabicl119
 ```
 
-## Tests
+The defaults reproduce the final policy: evaluation miscoverage 0.10, confidence error level 0.05, three risk bins, a 35% audit share within calibration, equal entropy--margin risk weighting, and the dense integer-rank family.
+
+## Synthetic certificate experiment
+
+The default synthetic command reproduces the evaluated 162 conditions at each audit size:
+
+```bash
+python scripts/run_synthetic_certificate.py \
+  --audit-sizes 60,120,240,480 \
+  --workers 10 --n-jobs 2 \
+  --outdir results/synthetic_certificate
+```
+
+## Verification
 
 ```bash
 python -m pip install -e ".[dev]"
 pytest
+python scripts/verify_aggregates.py
 ```
+
+See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the exact statistical rule, splits, metrics, task roles, result mapping, and environment notes.
 
 ## License
 

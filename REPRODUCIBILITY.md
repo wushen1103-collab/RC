@@ -1,90 +1,87 @@
 # Reproducibility guide
 
-## Experimental unit and split
+## Final RankCover policy
 
-An experimental run is a task-model-seed tuple. The standard protocol uses a stratified 45%/25%/30% train/calibration/test split. OpenML inputs are encoded, missing numeric values are median-imputed, categorical features are ordinal-encoded with an explicit unknown category, classes with fewer than eight observations are removed, and each task is capped at the requested maximum row count through stratified subsampling.
+For each task--model--seed run, the data are split into training, calibration, and test partitions. The calibration partition is divided again into disjoint scoring and audit subsets. The scoring subset supplies the finite-sample rank threshold `q0`; the audit subset alone determines whether a candidate is certified. Test labels are accessed only after selection.
 
-The two committed task collections are:
+The final candidate family is the dense nested path
 
-- `benchmarks/hard20.txt`: 20 prespecified multiclass stress tasks.
-- `benchmarks/tabicl119.txt`: 119 public OpenML classification tasks.
+```text
+q0, q0 + 1, ..., K - 1
+```
 
-## Prespecified RankCover operating points
+with rank `K` reserved for all-label fallback. Unique informative candidates are inspected from `K - 1` toward `q0`. For candidate `q` and prespecified risk bin `b`, let `e[q,b]` be the number of audit errors among `n[q,b]` audit examples. RankCover computes the one-sided Clopper--Pearson upper bound
 
-The reported principal protocol uses:
+```text
+U[q,b] = BetaQuantile(1 - delta / B; e[q,b] + 1, n[q,b] - e[q,b])
+```
 
-| Quantity | Value | Role |
-|---|---:|---|
-| Evaluation target, `alpha` | 0.10 | Coverage and audit target of 0.90 |
-| Safe construction level | 0.025 | Compact rank candidate |
-| Ultra-safe construction level | 0.01 | Conservative fallback candidate |
-| Calibration audit fraction | 0.35 | Held-out audit decision layer |
-| Minimum audit SSCS | 1.00 | Audit pass requirement |
-| Maximum audit risk-bin deficit | 0.00 | Audit pass requirement |
-| Rank floor | 3 | Minimum set size when activated |
-| Floor activation threshold | 5 classes | Restricts the floor to sufficiently multiclass tasks |
-| Risk strata | 3 | Low, medium, and high model-risk groups |
+with the standard boundary value `U = 1` when every audit example is an error. Candidate `q` passes when `max_b U[q,b] <= alpha_eval`. The fixed sequence stops at the first failure and returns the smallest previously certified set. Failure of the first candidate returns all labels. Pointwise nesting preserves the scoring-split conformal marginal guarantee, while the fixed unsafe boundary controls erroneous adaptive deployment without candidate-wise correction.
 
-For a fitted classifier, instability and class ambiguity form the model-risk proxy used to create the risk strata. The compact and fallback candidates are nested. The held-out calibration audit selects the compact candidate only when its size-stratified coverage and worst risk-bin deficit meet the thresholds; otherwise the fallback candidate is deployed. The consistency guard preserves the nested conservative route if the held-out size comparison is not maintained.
+The matched empirical-zero comparator uses the identical dense family, order, and stopping rule and replaces only the confidence-bound acceptance predicate with zero observed audit errors.
+
+## Main protocol
+
+| Quantity | Main value |
+|---|---:|
+| Evaluation miscoverage, `alpha_eval` | 0.10 |
+| Certificate error level, `delta` | 0.05 |
+| Train/calibration/test fractions | 0.45/0.25/0.30 |
+| Audit share of calibration | 0.35 |
+| Candidate family | all integer ranks from `q0` to `K - 1` |
+| Risk statistic | 0.5 predictive entropy + 0.5 top-label margin uncertainty |
+| Risk bins | 3 equal-frequency bins fitted from calibration evidence |
+| Seeds | 0, 1, 2 |
+| Explicit fallback | all labels |
+
+Small calibration sets use the saturated conformal rank quantile: when the finite-sample order-statistic index reaches `n + 1`, the threshold is set to `K`, which returns all labels.
+
+## Benchmark roles
+
+- `benchmarks/hard20.txt`: 20 prespecified multiclass stress tasks, evaluated with five conventional backbones and three seeds (300 runs). These tasks also occur in TabICL119, so Hard20 is a backbone-stress module rather than an independent task holdout.
+- `benchmarks/tabicl119.txt`: 119 public OpenML classification tasks evaluated with the common TabICL prediction source and three seeds (357 runs).
+- `benchmarks/external20.txt`: 20 retained tasks from a source list frozen before RankCover evaluation. Loader failures, exact/reuploaded tasks, within-pool duplicates, and documented parent-source relatives were removed without consulting RankCover outcomes and without replacement (300 runs).
+
+OpenML inputs are encoded, missing numeric values are median-imputed, categorical features are ordinal-encoded with an explicit unknown category, and low-support classes are removed according to the loader rules. Each main run records the dataset specification, model, seed, split, audit counts, confidence bounds, candidate order, stopping boundary, selected rank, fallback state, and test metrics.
 
 ## Metrics
 
 - **Coverage:** fraction of test labels contained in their prediction sets.
-- **Mean set size:** average prediction-set cardinality; smaller is more efficient at comparable reliability.
-- **SSCS:** minimum empirical coverage across supported prediction-set-size strata. For a fixed-threshold rank predictor, set cardinality is constant within a run, so SSCS equals empirical coverage for that run.
-- **Worst risk-bin deficit:** largest positive shortfall from the evaluation coverage target across model-risk strata.
-- **Mean risk-bin deficit:** support-weighted average positive shortfall across model-risk strata.
-- **Violation run:** a run with a positive worst risk-bin deficit.
+- **Mean set size:** average prediction-set cardinality.
+- **SSCS:** minimum empirical coverage across supported prediction-set-size strata. For a fixed-rank predictor, cardinality is constant within a run and SSCS equals empirical coverage.
+- **Maximum risk-bin deficit (`Dmax`):** largest positive shortfall from `1 - alpha_eval` across risk bins.
+- **Mean risk-bin deficit (`Dmean`):** mean positive shortfall across risk bins.
+- **Violation run:** a run with `Dmax > 0`.
+- **False certificate:** a synthetic condition in which a non-fallback candidate is certified although its fixed reference population has `Dmax > 0`.
 
-## Experiment drivers
+RankCover does not optimize unconditional set-size minimization. It selects the smallest candidate supported by the prespecified certificate; set size and fallback rate quantify the efficiency cost of certification.
 
-### Main benchmark
+## Synthetic reference populations
 
-`scripts/run_benchmark.py` contains the main routes, conformal baselines, rank operating points, ablations, risk estimation, and aggregation. Its important command-line parameters are explicit in `python scripts/run_benchmark.py --help`.
+The final grid crosses three seeds, class counts 3/5/10, imbalance ratios 1/10/50, two difficulty levels, and three probability temperatures, producing 162 conditions per audit size. Audit sizes are 60, 120, 240, and 480. Each selected policy is evaluated on a fixed 24,000-observation reference population.
 
-### Paired controls
+## Compact result mapping
 
-`scripts/run_controls.py` compares RankCover against generic floors and size-matched APS, RAPS, SAPS, and rank controls under the same task-model-seed blocks.
-
-### Custom split and calibration-size study
-
-`scripts/run_custom_split.py` reuses the benchmark implementation while replacing only the train/calibration/test proportions. This keeps the estimator, score construction, audit, and evaluation code fixed across split settings.
-
-### Synthetic mechanism study
-
-`scripts/run_synthetic.py` varies class count, class overlap, difficulty, and class imbalance under controlled data generation. The default uses five seeds and 6,000 samples per condition.
-
-### Audit-design sensitivity
-
-`scripts/run_audit_sensitivity.py` evaluates the prespecified design alongside changes to the audit fraction and risk-proxy fusion weights. It uses theorem-nested safe and ultra-safe thresholds in every design.
-
-## Aggregate-file mapping
-
-| File | Evidence represented |
+| File under `results/final/` | Evidence |
 |---|---|
-| `published_rank.csv` | Main grouped comparison on Hard20 and the 119-task benchmark |
-| `controls.csv` | Generic-floor and size-matched controls |
-| `controls_paired.csv` | Paired RankCover-minus-control comparisons |
-| `dataset_blocked_paired_repeated_split.csv` | Dataset-blocked paired inference across repeated splits |
-| `deficit_magnitude_repeated_split.csv` | Repeated-split SSCS, maximum deficit, mean deficit, and violation counts |
-| `audit_counterfactual.csv` | Compact-versus-fallback counterfactuals conditioned on audit decisions |
-| `audit_paired.csv` | Paired audit counterfactual differences |
-| `floor_k.csv` | Rank-floor sensitivity |
-| `trigger.csv` | Floor activation-threshold sensitivity |
-| `multi_alpha.csv` | Multiple evaluation-target analysis |
-| `calibration.csv` | Calibration-size sensitivity |
-| `calibration_audit.csv` | Audit behavior across calibration sizes |
-| `stability.csv` | Estimator- and seed-level stability |
-| `synthetic.csv` | Controlled mechanism study |
-| `support_aware_sscs.csv` | Support-threshold SSCS sanity check |
-| `audit_design_sensitivity.csv` | Audit-fraction and risk-fusion sensitivity |
+| `main_method_aggregate.csv` | All main methods on External20, Hard20, and TabICL119 |
+| `synthetic_certificate_summary.csv` | Confidence-certificate and empirical-zero false-certificate results |
+| `pass_utility.csv` | Conditional utility among certified non-fallback decisions |
+| `selected_rank_distribution*.csv` | Selected informative ranks and all-label fallback |
+| `sensitivity_summary.csv` | Calibration, audit, binning, risk, and nominal-level analyses |
+| `class_cardinality_summary.csv` | Class-cardinality behavior |
+| `random_split_summary.csv` | Theory-aligned random-split check |
+| `paired_task_blocked_comparisons.csv` | Task-blocked paired inference |
+| `paired_source_family_blocked_comparisons.csv` | Source-family-blocked paired inference |
+| `source_family_manifest.csv` | Source-family grouping used in blocked inference |
+| `implementation_audit.json` | Candidate-order and stopping-rule validation counts |
 
-## Data access and caching
+Only compact aggregate evidence is versioned. Full reruns regenerate raw rows, candidate-audit traces, dataset-level summaries, reports, and metadata in the requested output directories.
 
-Built-in datasets require no download. OpenML tasks are downloaded through the `openml` Python client and cached under `data/openml/` by default. To use another cache location, pass `--openml-cache <path>`. Dataset files and caches are intentionally not versioned.
+## Determinism, caching, and hardware
 
-The benchmark scripts record command-line parameters and write raw, summary, and error files into the selected output directory. Preserve those generated parameter files when conducting a new full run.
+Every reported run carries an explicit seed. CPU estimators receive `--n-jobs` when supported. TabICL and other optional accelerators may depend on library and device implementations; record the resolved environment with `python -m pip freeze`. OpenML data and prediction caches are intentionally unversioned and can be redirected with `--openml-cache` and `--prediction-cache-dir`. No local machine path, account name, or server-specific assumption is embedded in the release.
 
-## Determinism and hardware
+## Historical ablations
 
-Every reported run carries an explicit seed. CPU estimators receive the requested `--n-jobs` value when supported. Foundation-model and tree-library behavior can also depend on library version and device implementation; record the resolved Python environment with `python -m pip freeze` for an independent rerun. No server-specific path or hardware assumption is embedded in the repository.
+The generic baseline scripts retain construction-level safe, ultra-safe, and floor-based rules because they are reported as historical ablations. They are not components of the final dense RankCover procedure.

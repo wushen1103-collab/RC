@@ -1,5 +1,11 @@
-# Result artifacts
+# Compact final evidence
 
-`aggregates/` contains the compact publication-facing evidence released with RankCover. These CSV files are derived summaries: they do not contain individual samples, predictions, downloaded datasets, model checkpoints, or machine-specific metadata.
+The `final/` directory contains publication-facing aggregates for the dense confidence-certified RankCover study. It excludes prediction caches, logs, partial files, duplicate raw outputs, and row-level test predictions.
 
-The experimental drivers write new outputs to separate subdirectories under `results/`. Generated raw and partial files are ignored by Git because full benchmark runs can be large. Run `python scripts/verify_aggregates.py` to validate every committed CSV against `aggregates.sha256`.
+Run the following command from the repository root to verify every committed aggregate:
+
+```bash
+python scripts/verify_aggregates.py
+```
+
+The benchmark and synthetic drivers regenerate detailed raw rows, candidate-audit traces, metadata, and reports in user-selected output directories.

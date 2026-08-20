@@ -13,4 +13,13 @@ results/controls/
 results/synthetic/
 results/audit_sensitivity/
 results/quickcheck/
+results/main/
+results/hard20/
+results/external20/
+results/tabicl119/
+results/hard20_random/
+results/synthetic_certificate/
+results/sensitivity/
+results/generated_summary/
+results/synthetic_quickcheck/
 *.partial.csv
