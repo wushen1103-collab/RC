@@ -118,6 +118,18 @@ python scripts/verify_aggregates.py
 
 See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the exact statistical rule, splits, metrics, task roles, result mapping, and environment notes.
 
+## Paper result mapping
+
+| Paper item | Reproducibility output |
+|---|---|
+| Table 4 and Figure 2 (synthetic certificate validation) | `results/final/synthetic_certificate_summary.csv` |
+| Table 5 and Figure 3 (three-module comparison) | `results/final/main_method_aggregate.csv` |
+| Table 6 (certificate and candidate-family ablations) | `results/final/main_method_aggregate.csv` and the rerun-level output of `scripts/run_confidence_rankcover.py` |
+| Table 7 (utility conditional on certificate pass) | `results/final/pass_utility.csv` |
+| Figure 4 (selected-rank distribution) | `results/final/selected_rank_distribution.csv` and `selected_rank_distribution_exact.csv` |
+| Table 8 and Supplementary sensitivity tables | `results/final/sensitivity_summary.csv` |
+| Supplementary trace, cardinality, split, and blocked-inference tables | `implementation_audit.json`, `class_cardinality_summary.csv`, `random_split_summary.csv`, and the two `paired_*_comparisons.csv` files |
+
 ## License
 
 Released under the MIT License.

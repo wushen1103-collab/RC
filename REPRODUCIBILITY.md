@@ -76,6 +76,8 @@ The final grid crosses three seeds, class counts 3/5/10, imbalance ratios 1/10/5
 | `source_family_manifest.csv` | Source-family grouping used in blocked inference |
 | `implementation_audit.json` | Candidate-order and stopping-rule validation counts |
 
+In the paper, `synthetic_certificate_summary.csv` supplies Table 4 and Figure 2; `main_method_aggregate.csv` supplies the aggregate values in Tables 5--6 and Figure 3; `pass_utility.csv` supplies Table 7; `selected_rank_distribution*.csv` supplies Figure 4; and `sensitivity_summary.csv` supplies Table 8 and the corresponding Supplementary sensitivity tables. The remaining files map to the explicitly named Supplementary trace, class-cardinality, random-split, and blocked-inference analyses.
+
 Only compact aggregate evidence is versioned. Full reruns regenerate raw rows, candidate-audit traces, dataset-level summaries, reports, and metadata in the requested output directories.
 
 ## Determinism, caching, and hardware
