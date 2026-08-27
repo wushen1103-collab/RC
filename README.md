@@ -2,6 +2,8 @@
 
 RankCover is a confidence-certified operating-point selector for conformal classification. A scoring split constructs a nested dense family of integer-rank prediction sets, a disjoint audit split supplies bin-wise error counts, and one-sided Clopper--Pearson bounds certify candidates in a fixed conservative-to-compact sequence. If the largest informative candidate cannot be certified, RankCover returns the all-label set.
 
+> **Current manuscript implementation.** The final policy is the dense fixed-sequence path `q0, q0 + 1, ..., K - 1`, with rank `K` used only for all-label fallback. Use `scripts/run_confidence_rankcover.py` for the reported real-data experiments and `scripts/run_synthetic_certificate.py` for certificate validation. The generic floor/compact-candidate drivers are retained only to reproduce historical ablations and are not the submitted RankCover method.
+
 This repository contains the final method implementation, public benchmark identifiers, experiment drivers, tests, and compact aggregate evidence used in the paper. Dataset caches, prediction caches, logs, and row-level intermediate files are intentionally excluded.
 
 ## Repository map
